@@ -42,7 +42,7 @@ jobs:
       if: always()
       with:
         name: ux-ui-report
-        path: /mnt/user-data/outputs/ux-report/
+        path: ./outputs/ux-report/
         retention-days: 30
     
     - name: Comment PR with results
@@ -51,7 +51,7 @@ jobs:
       with:
         script: |
           const fs = require('fs');
-          const report = JSON.parse(fs.readFileSync('/mnt/user-data/outputs/ux-report/ux-report.json', 'utf8'));
+          const report = JSON.parse(fs.readFileSync('./outputs/ux-report/ux-report.json', 'utf8'));
           
           const body = \`## 📊 UX/UI Test Results
           
@@ -80,7 +80,7 @@ jobs:
     
     - name: Fail if score is too low
       run: |
-        SCORE=$(node -e "console.log(require('/mnt/user-data/outputs/ux-report/ux-report.json').overallScore)")
+        SCORE=$(node -e "console.log(require('./outputs/ux-report/ux-report.json').overallScore)")
         if [ $SCORE -lt 70 ]; then
           echo "❌ UX/UI score ($SCORE) is below threshold (70)"
           exit 1
@@ -111,7 +111,7 @@ ux-ui-test:
   artifacts:
     when: always
     paths:
-      - /mnt/user-data/outputs/ux-report/
+      - ./outputs/ux-report/
     expire_in: 1 month
   
   only:
@@ -129,7 +129,7 @@ report-results:
     - |
       echo "📊 UX/UI Test Results"
       node -e "
-        const report = require('/mnt/user-data/outputs/ux-report/ux-report.json');
+        const report = require('./outputs/ux-report/ux-report.json');
         console.log('Overall Score:', report.overallScore + '/100');
         console.log('Passed:', report.results.filter(r => r.status === 'pass').length);
         console.log('Failed:', report.results.filter(r => r.status === 'fail').length);
@@ -174,7 +174,7 @@ pipeline {
           allowMissing: false,
           alwaysLinkToLastBuild: true,
           keepAll: true,
-          reportDir: '/mnt/user-data/outputs/ux-report',
+          reportDir: './outputs/ux-report',
           reportFiles: 'ux-report.html',
           reportName: 'UX/UI Test Report'
         ])
@@ -184,7 +184,7 @@ pipeline {
     stage('Check Quality Gate') {
       steps {
         script {
-          def report = readJSON file: '/mnt/user-data/outputs/ux-report/ux-report.json'
+          def report = readJSON file: './outputs/ux-report/ux-report.json'
           def score = report.overallScore
           
           echo "UX/UI Score: ${score}/100"
@@ -199,7 +199,7 @@ pipeline {
   
   post {
     always {
-      archiveArtifacts artifacts: '/mnt/user-data/outputs/ux-report/**/*', allowEmptyArchive: false
+      archiveArtifacts artifacts: './outputs/ux-report/**/*', allowEmptyArchive: false
     }
     
     success {
@@ -251,13 +251,13 @@ jobs:
           command: npm test
       
       - store_artifacts:
-          path: /mnt/user-data/outputs/ux-report
+          path: ./outputs/ux-report
           destination: ux-ui-report
       
       - run:
           name: Check score threshold
           command: |
-            SCORE=$(node -e "console.log(require('/mnt/user-data/outputs/ux-report/ux-report.json').overallScore)")
+            SCORE=$(node -e "console.log(require('./outputs/ux-report/ux-report.json').overallScore)")
             echo "Score: $SCORE"
             if [ $SCORE -lt 70 ]; then
               echo "Score is below threshold"
@@ -301,18 +301,18 @@ steps:
 
 - task: PublishBuildArtifacts@1
   inputs:
-    pathToPublish: '/mnt/user-data/outputs/ux-report'
+    pathToPublish: './outputs/ux-report'
     artifactName: 'ux-ui-report'
   condition: always()
 
 - task: PublishTestResults@2
   inputs:
     testResultsFormat: 'JUnit'
-    testResultsFiles: '/mnt/user-data/outputs/ux-report/ux-report.json'
+    testResultsFiles: './outputs/ux-report/ux-report.json'
   condition: always()
 
 - script: |
-    SCORE=$(node -e "console.log(require('/mnt/user-data/outputs/ux-report/ux-report.json').overallScore)")
+    SCORE=$(node -e "console.log(require('./outputs/ux-report/ux-report.json').overallScore)")
     echo "##vso[task.setvariable variable=uxScore]$SCORE"
     if [ $SCORE -lt 70 ]; then
       echo "##vso[task.logissue type=error]UX/UI score ($SCORE) is below threshold (70)"
@@ -338,7 +338,7 @@ RUN npm ci
 COPY . .
 
 # Create output directory
-RUN mkdir -p /mnt/user-data/outputs/ux-report
+RUN mkdir -p ./outputs/ux-report
 
 CMD ["npm", "test"]
 \`\`\`
@@ -352,7 +352,7 @@ services:
   ux-ui-tester:
     build: .
     volumes:
-      - ./reports:/mnt/user-data/outputs/ux-report
+      - ./outputs/ux-report:/app/outputs/ux-report
     environment:
       - NODE_ENV=production
 \`\`\`
@@ -380,7 +380,7 @@ cd /path/to/project
 npm test
 
 # Check score
-SCORE=$(node -e "console.log(require('/mnt/user-data/outputs/ux-report/ux-report.json').overallScore)")
+SCORE=$(node -e "console.log(require('./outputs/ux-report/ux-report.json').overallScore)")
 
 # Send notification if score drops
 if [ $SCORE -lt 70 ]; then
@@ -390,7 +390,8 @@ fi
 
 # Archive report
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-cp /mnt/user-data/outputs/ux-report/ux-report.html "/reports/archive/report_$TIMESTAMP.html"
+mkdir -p ./reports/archive
+cp ./outputs/ux-report/ux-report.html "./reports/archive/report_$TIMESTAMP.html"
 \`\`\`
 
 เพิ่มใน crontab:
@@ -414,7 +415,7 @@ const https = require('https');
 const fs = require('fs');
 
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
-const report = JSON.parse(fs.readFileSync('/mnt/user-data/outputs/ux-report/ux-report.json'));
+const report = JSON.parse(fs.readFileSync('./outputs/ux-report/ux-report.json'));
 
 const color = report.overallScore >= 80 ? 'good' : report.overallScore >= 60 ? 'warning' : 'danger';
 

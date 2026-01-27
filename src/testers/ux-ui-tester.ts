@@ -1,6 +1,7 @@
 import { chromium, firefox, webkit, Browser, Page, BrowserContext } from 'playwright';
 import * as fs from 'fs';
 import * as path from 'path';
+import { ScreenshotAnalyzer, ElementIssue } from '../utils/screenshot-analyzer';
 
 // ========================================
 // Types & Interfaces
@@ -14,6 +15,8 @@ interface TestResult {
   details: string;
   severity: 'high' | 'medium' | 'low';
   timestamp: string;
+  elements?: ElementIssue[];
+  recommendations?: string[];
 }
 
 interface PerformanceMetrics {
@@ -94,9 +97,11 @@ class UXUITester {
   };
   private accessibilityIssues: AccessibilityIssue[] = [];
   private responsiveResults: ResponsiveTestResult[] = [];
+  private screenshotAnalyzer!: ScreenshotAnalyzer;
 
   constructor() {
     this.setupDirectories();
+    this.screenshotAnalyzer = new ScreenshotAnalyzer(config.screenshotsDir);
   }
 
   private setupDirectories(): void {
@@ -139,7 +144,9 @@ class UXUITester {
     status: 'pass' | 'fail' | 'warning',
     score: number,
     details: string,
-    severity: 'high' | 'medium' | 'low' = 'medium'
+    severity: 'high' | 'medium' | 'low' = 'medium',
+    elements?: ElementIssue[],
+    recommendations?: string[]
   ): void {
     this.results.push({
       category,
@@ -149,6 +156,8 @@ class UXUITester {
       details,
       severity,
       timestamp: new Date().toISOString(),
+      elements,
+      recommendations,
     });
   }
 
@@ -517,7 +526,7 @@ class UXUITester {
       const textElements = Array.from(document.querySelectorAll('p, a, button, label, h1, h2, h3, h4, h5, h6, li, span'))
         .slice(0, 100); // Check first 100 elements
 
-      textElements.forEach(el => {
+      textElements.forEach((el, index) => {
         const style = window.getComputedStyle(el);
         const color = style.color;
         const bgColor = style.backgroundColor;
@@ -528,8 +537,10 @@ class UXUITester {
             const contrast = getContrast(color, bgColor);
             // WCAG AA: 4.5:1 for normal text
             if (contrast < 4.5) {
+              const selector = el.id ? `#${el.id}` : el.className ? `.${el.className.split(' ')[0]}` : `${el.tagName.toLowerCase()}:nth-of-type(${index})`;
               issues.push({
                 tag: el.tagName,
+                selector: selector,
                 contrast: contrast.toFixed(2),
                 text: text.substring(0, 50)
               });
@@ -543,6 +554,14 @@ class UXUITester {
       return issues;
     });
 
+    // Record problem areas with recommendations
+    const recommendations: string[] = [];
+    if (contrastIssues.length > 0) {
+      recommendations.push('Increase contrast ratio between text and background colors');
+      recommendations.push('Use tools like WebAIM Color Contrast Checker to validate WCAG AA compliance (4.5:1)');
+      recommendations.push('Consider using darker text on light backgrounds or lighter text on dark backgrounds');
+    }
+
     const score = contrastIssues.length === 0 ? 10 : Math.max(0, 10 - (contrastIssues.length * 0.5));
     this.addResult(
       'Visual Design',
@@ -552,7 +571,9 @@ class UXUITester {
       contrastIssues.length === 0 
         ? 'All text has sufficient contrast' 
         : `${contrastIssues.length} text elements have low contrast (< 4.5:1)`,
-      contrastIssues.length > 5 ? 'high' : 'medium'
+      contrastIssues.length > 5 ? 'high' : 'medium',
+      undefined,
+      recommendations
     );
   }
 
@@ -589,13 +610,29 @@ class UXUITester {
     });
 
     const visibility = buttonAnalysis.totalCTAs > buttonAnalysis.notVisible ? 'pass' : 'warning';
+    
+    const recommendations: string[] = [];
+    if (buttonAnalysis.smallCTAs > 0) {
+      recommendations.push('Increase CTA button size to at least 80x40px for better touch targets');
+      recommendations.push('Ensure buttons are easily clickable on mobile devices (minimum 44x44px recommended)');
+    }
+    if (buttonAnalysis.notVisible > 0) {
+      recommendations.push('Move CTA buttons above the fold to improve visibility');
+      recommendations.push('Ensure primary CTAs are visible without scrolling on initial page load');
+    }
+    if (buttonAnalysis.withAriaLabel < buttonAnalysis.totalCTAs) {
+      recommendations.push('Add proper aria-label attributes to all CTA buttons for accessibility');
+    }
+    
     this.addResult(
       'Interactive Elements',
       'Call-to-Action Buttons',
       visibility,
       buttonAnalysis.totalCTAs > 0 ? (buttonAnalysis.notVisible === 0 ? 10 : 7) : 5,
       `Found ${buttonAnalysis.totalCTAs} CTA buttons, ${buttonAnalysis.smallCTAs} are too small, ${buttonAnalysis.notVisible} not visible above fold`,
-      buttonAnalysis.smallCTAs > 2 ? 'high' : 'medium'
+      buttonAnalysis.smallCTAs > 2 ? 'high' : 'medium',
+      undefined,
+      recommendations.length > 0 ? recommendations : undefined
     );
   }
 
@@ -627,13 +664,26 @@ class UXUITester {
       return analysis;
     });
 
+    const recommendations: string[] = [];
+    if (keyboardAnalysis.withoutVisibleFocus > 0) {
+      recommendations.push('Add visible focus indicators to all interactive elements');
+      recommendations.push('Use CSS :focus or :focus-visible pseudo-classes with clear styling (outline, box-shadow, or border)');
+      recommendations.push('Ensure focus styles have sufficient contrast to be visible');
+    }
+    if (keyboardAnalysis.tabIndexIssues > 0) {
+      recommendations.push('Avoid using positive tabindex values; let natural HTML order define tab sequence');
+      recommendations.push('Use tabindex="0" for elements that need focus but are not naturally focusable');
+    }
+
     this.addResult(
       'Accessibility',
       'Keyboard Navigation',
       keyboardAnalysis.totalFocusable > 3 ? 'pass' : 'warning',
       Math.min(10, keyboardAnalysis.totalFocusable),
       `${keyboardAnalysis.totalFocusable} focusable elements, ${keyboardAnalysis.withoutVisibleFocus} without visible focus, ${keyboardAnalysis.tabIndexIssues} with positive tabindex`,
-      keyboardAnalysis.withoutVisibleFocus > 5 ? 'high' : 'medium'
+      keyboardAnalysis.withoutVisibleFocus > 5 ? 'high' : 'medium',
+      undefined,
+      recommendations.length > 0 ? recommendations : undefined
     );
   }
 
@@ -660,6 +710,14 @@ class UXUITester {
 
     // Meta description
     const descScore = seoAnalysis.hasMetaDescription && seoAnalysis.metaDescription.length >= 120 && seoAnalysis.metaDescription.length <= 160 ? 10 : 7;
+    const descRecommendations: string[] = [];
+    if (!seoAnalysis.hasMetaDescription) {
+      descRecommendations.push('Add a meta description tag in the <head> section');
+    }
+    if (seoAnalysis.metaDescription.length < 120 || seoAnalysis.metaDescription.length > 160) {
+      descRecommendations.push('Keep meta description between 120-160 characters for optimal display in search results');
+    }
+
     this.addResult(
       'SEO',
       'Meta Description',
@@ -668,18 +726,30 @@ class UXUITester {
       seoAnalysis.hasMetaDescription ? 
         `Found (${seoAnalysis.metaDescription.length} chars)` : 
         'Missing meta description',
-      seoAnalysis.hasMetaDescription ? 'low' : 'high'
+      seoAnalysis.hasMetaDescription ? 'low' : 'high',
+      undefined,
+      descRecommendations.length > 0 ? descRecommendations : undefined
     );
 
     // Title tag
     const titleScore = seoAnalysis.titleLength >= 30 && seoAnalysis.titleLength <= 60 ? 10 : 7;
+    const titleRecommendations: string[] = [];
+    if (!seoAnalysis.title || seoAnalysis.titleLength === 0) {
+      titleRecommendations.push('Add a meaningful page title in the <head> section');
+    }
+    if (seoAnalysis.titleLength < 30 || seoAnalysis.titleLength > 60) {
+      titleRecommendations.push('Keep page title between 30-60 characters for optimal search result display');
+    }
+
     this.addResult(
       'SEO',
       'Page Title',
       seoAnalysis.title ? 'pass' : 'fail',
       titleScore,
       `"${seoAnalysis.title.substring(0, 50)}..." (${seoAnalysis.titleLength} chars)`,
-      'low'
+      'low',
+      undefined,
+      titleRecommendations.length > 0 ? titleRecommendations : undefined
     );
 
     // Canonical tag
@@ -689,7 +759,9 @@ class UXUITester {
       seoAnalysis.hasCanonical ? 'pass' : 'warning',
       seoAnalysis.hasCanonical ? 10 : 7,
       seoAnalysis.hasCanonical ? 'Canonical tag present' : 'No canonical tag found',
-      'low'
+      'low',
+      undefined,
+      seoAnalysis.hasCanonical ? undefined : ['Add a canonical tag to prevent duplicate content issues']
     );
 
     // Structured data
@@ -699,7 +771,9 @@ class UXUITester {
       seoAnalysis.hasStructuredData ? 'pass' : 'warning',
       seoAnalysis.hasStructuredData ? 10 : 5,
       seoAnalysis.hasStructuredData ? 'JSON-LD structured data found' : 'No structured data detected',
-      'medium'
+      'medium',
+      undefined,
+      seoAnalysis.hasStructuredData ? undefined : ['Add JSON-LD structured data (schema.org) to help search engines understand your content']
     );
   }
 

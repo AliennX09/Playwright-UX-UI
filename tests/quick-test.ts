@@ -44,8 +44,12 @@ async function quickTest() {
     await tester.testSEOBasics();
     console.log('  ✓ SEO basics test done');
 
-    // Generate full report
+    // Generate report BEFORE closing browser
     const report = await tester.generateReport();
+
+    // Now cleanup
+    await tester.cleanup();
+    console.log('  ✓ Browser closed');
 
     console.log('\n' + '='.repeat(70));
     console.log('📊 LANDING PAGE QUICK TEST RESULTS');
@@ -90,9 +94,6 @@ async function quickTest() {
   } catch (error) {
     console.error('❌ Error during testing:', error);
     process.exit(1);
-  } finally {
-    await tester.cleanup();
-    console.log('👋 Test completed!');
   }
 }
 
