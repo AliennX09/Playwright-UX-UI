@@ -1,0 +1,365 @@
+{
+  "url": "https://jigsawaiteam.com/",
+  "testDate": "2026-01-27T08:43:31.282Z",
+  "overallScore": 82,
+  "results": [
+    {
+      "category": "Performance",
+      "test": "Page Load Time",
+      "status": "pass",
+      "score": 10,
+      "details": "Page loaded in 0ms. Recommended: < 3000ms",
+      "severity": "medium",
+      "timestamp": "2026-01-27T08:43:29.880Z"
+    },
+    {
+      "category": "Performance",
+      "test": "Largest Contentful Paint",
+      "status": "pass",
+      "score": 10,
+      "details": "LCP: 0ms. Recommended: < 2500ms",
+      "severity": "medium",
+      "timestamp": "2026-01-27T08:43:29.881Z"
+    },
+    {
+      "category": "Performance",
+      "test": "Total Page Size",
+      "status": "warning",
+      "score": 4,
+      "details": "Total size: 11.94MB, 129 requests",
+      "severity": "low",
+      "timestamp": "2026-01-27T08:43:29.881Z"
+    },
+    {
+      "category": "Visual Design",
+      "test": "H1 Heading",
+      "status": "pass",
+      "score": 10,
+      "details": "Found 1 H1 tag(s). Recommended: exactly 1",
+      "severity": "medium",
+      "timestamp": "2026-01-27T08:43:29.915Z"
+    },
+    {
+      "category": "Visual Design",
+      "test": "Heading Hierarchy",
+      "status": "pass",
+      "score": 10,
+      "details": "Heading structure: h1:1, h2:7, h3:22, h4:3, h5:0, h6:0",
+      "severity": "medium",
+      "timestamp": "2026-01-27T08:43:29.920Z"
+    },
+    {
+      "category": "Visual Design",
+      "test": "Image Alt Text",
+      "status": "fail",
+      "score": 0,
+      "details": "9 out of 66 images missing alt text",
+      "severity": "high",
+      "timestamp": "2026-01-27T08:43:29.924Z"
+    },
+    {
+      "category": "Visual Design",
+      "test": "Color Contrast (WCAG AA)",
+      "status": "warning",
+      "score": 8,
+      "details": "4 text elements have low contrast (< 4.5:1)",
+      "severity": "medium",
+      "timestamp": "2026-01-27T08:43:29.936Z"
+    },
+    {
+      "category": "Navigation",
+      "test": "Navigation Element",
+      "status": "pass",
+      "score": 10,
+      "details": "Navigation element found",
+      "severity": "high",
+      "timestamp": "2026-01-27T08:43:29.944Z"
+    },
+    {
+      "category": "Navigation",
+      "test": "Logo/Home Link",
+      "status": "pass",
+      "score": 10,
+      "details": "Logo/home link found",
+      "severity": "medium",
+      "timestamp": "2026-01-27T08:43:29.948Z"
+    },
+    {
+      "category": "Navigation",
+      "test": "Menu Items",
+      "status": "pass",
+      "score": 10,
+      "details": "Found 8 navigation links",
+      "severity": "medium",
+      "timestamp": "2026-01-27T08:43:29.953Z"
+    },
+    {
+      "category": "Navigation",
+      "test": "Mobile Menu",
+      "status": "pass",
+      "score": 10,
+      "details": "Mobile menu button found",
+      "severity": "medium",
+      "timestamp": "2026-01-27T08:43:29.957Z"
+    },
+    {
+      "category": "Readability",
+      "test": "Font Size",
+      "status": "warning",
+      "score": 4,
+      "details": "Minimum font size: 10.0px. Recommended: >= 16px",
+      "severity": "high",
+      "timestamp": "2026-01-27T08:43:29.969Z"
+    },
+    {
+      "category": "Readability",
+      "test": "Line Height",
+      "status": "pass",
+      "score": 10,
+      "details": "Average line height: 1.51. Recommended: >= 1.5",
+      "severity": "low",
+      "timestamp": "2026-01-27T08:43:29.969Z"
+    },
+    {
+      "category": "Readability",
+      "test": "Text Overflow",
+      "status": "warning",
+      "score": 7,
+      "details": "12 elements with horizontal overflow detected",
+      "severity": "medium",
+      "timestamp": "2026-01-27T08:43:29.977Z"
+    },
+    {
+      "category": "Interactive Elements",
+      "test": "Call-to-Action Buttons",
+      "status": "warning",
+      "score": 5,
+      "details": "Found 0 CTA buttons, 0 are too small, 0 not visible above fold",
+      "severity": "medium",
+      "timestamp": "2026-01-27T08:43:29.982Z"
+    },
+    {
+      "category": "Forms",
+      "test": "Form Existence",
+      "status": "pass",
+      "score": 10,
+      "details": "No forms found on this page",
+      "severity": "low",
+      "timestamp": "2026-01-27T08:43:29.988Z"
+    },
+    {
+      "category": "Interactive Elements",
+      "test": "Buttons",
+      "status": "pass",
+      "score": 10,
+      "details": "Found 34 buttons",
+      "severity": "low",
+      "timestamp": "2026-01-27T08:43:29.996Z"
+    },
+    {
+      "category": "Interactive Elements",
+      "test": "Links",
+      "status": "pass",
+      "score": 10,
+      "details": "Found 41 links (5 external)",
+      "severity": "low",
+      "timestamp": "2026-01-27T08:43:29.996Z"
+    },
+    {
+      "category": "Interactive Elements",
+      "test": "Touch Target Size",
+      "status": "warning",
+      "score": 4,
+      "details": "33 buttons/links smaller than 44x44px",
+      "severity": "high",
+      "timestamp": "2026-01-27T08:43:29.996Z"
+    },
+    {
+      "category": "Accessibility",
+      "test": "Keyboard Navigation",
+      "status": "pass",
+      "score": 10,
+      "details": "82 focusable elements, 0 without visible focus, 0 with positive tabindex",
+      "severity": "medium",
+      "timestamp": "2026-01-27T08:43:30.002Z"
+    },
+    {
+      "category": "SEO",
+      "test": "Meta Description",
+      "status": "pass",
+      "score": 10,
+      "details": "Found (144 chars)",
+      "severity": "low",
+      "timestamp": "2026-01-27T08:43:30.008Z"
+    },
+    {
+      "category": "SEO",
+      "test": "Page Title",
+      "status": "pass",
+      "score": 7,
+      "details": "\"Jigsaw AI Team | รวมทุก AI ไว้ในที่เดียว ใช้ถูกลิข...\" (68 chars)",
+      "severity": "low",
+      "timestamp": "2026-01-27T08:43:30.008Z"
+    },
+    {
+      "category": "SEO",
+      "test": "Canonical Tag",
+      "status": "pass",
+      "score": 10,
+      "details": "Canonical tag present",
+      "severity": "low",
+      "timestamp": "2026-01-27T08:43:30.008Z"
+    },
+    {
+      "category": "SEO",
+      "test": "Structured Data",
+      "status": "pass",
+      "score": 10,
+      "details": "JSON-LD structured data found",
+      "severity": "medium",
+      "timestamp": "2026-01-27T08:43:30.008Z"
+    },
+    {
+      "category": "Responsive Design",
+      "test": "Desktop 1920x1080",
+      "status": "warning",
+      "score": 7,
+      "details": "31 text elements smaller than 14px",
+      "severity": "low",
+      "timestamp": "2026-01-27T08:43:30.020Z"
+    },
+    {
+      "category": "Responsive Design",
+      "test": "Mobile Testing Note",
+      "status": "warning",
+      "score": 7,
+      "details": "Mobile responsive testing disabled (manual testing recommended)",
+      "severity": "low",
+      "timestamp": "2026-01-27T08:43:30.020Z"
+    },
+    {
+      "category": "Accessibility",
+      "test": "Focusable Elements",
+      "status": "pass",
+      "score": 10,
+      "details": "82 keyboard-accessible elements found",
+      "severity": "high",
+      "timestamp": "2026-01-27T08:43:31.275Z"
+    },
+    {
+      "category": "Accessibility",
+      "test": "Language Attribute",
+      "status": "pass",
+      "score": 10,
+      "details": "Language attribute present",
+      "severity": "high",
+      "timestamp": "2026-01-27T08:43:31.278Z"
+    },
+    {
+      "category": "Accessibility",
+      "test": "ARIA Landmarks",
+      "status": "pass",
+      "score": 10,
+      "details": "Landmarks found: banner, navigation, main, contentinfo",
+      "severity": "medium",
+      "timestamp": "2026-01-27T08:43:31.282Z"
+    },
+    {
+      "category": "Accessibility",
+      "test": "Overall A11y Issues",
+      "status": "fail",
+      "score": 4,
+      "details": "8 total issues (4 critical/serious)",
+      "severity": "high",
+      "timestamp": "2026-01-27T08:43:31.282Z"
+    }
+  ],
+  "performance": {
+    "loadTime": 0,
+    "domContentLoaded": 0,
+    "firstPaint": 780,
+    "firstContentfulPaint": 780,
+    "largestContentfulPaint": 0,
+    "totalSize": 12522810,
+    "requestCount": 129
+  },
+  "accessibility": [
+    {
+      "type": "aria-input-field-name",
+      "severity": "serious",
+      "element": ".border-primary",
+      "description": "Ensures every ARIA input field has an accessible name",
+      "wcagLevel": "wcag2a, wcag412"
+    },
+    {
+      "type": "button-name",
+      "severity": "critical",
+      "element": ".hover\\:bg-gray-100.rounded",
+      "description": "Ensures buttons have discernible text",
+      "wcagLevel": "wcag2a, wcag412"
+    },
+    {
+      "type": "color-contrast",
+      "severity": "serious",
+      "element": ".hover\\:bg-\\[\\#E00000\\]",
+      "description": "Ensures the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+      "wcagLevel": "wcag2aa, wcag143"
+    },
+    {
+      "type": "heading-order",
+      "severity": "moderate",
+      "element": "div:nth-child(2) > h4",
+      "description": "Ensures the order of headings is semantically correct",
+      "wcagLevel": ""
+    },
+    {
+      "type": "landmark-main-is-top-level",
+      "severity": "moderate",
+      "element": ".pt-\\[var\\(--header-offset\\)\\] > main",
+      "description": "Ensures the main landmark is at top level",
+      "wcagLevel": ""
+    },
+    {
+      "type": "landmark-no-duplicate-main",
+      "severity": "moderate",
+      "element": ".pt-\\[var\\(--header-offset\\)\\]",
+      "description": "Ensures the document has at most one main landmark",
+      "wcagLevel": ""
+    },
+    {
+      "type": "landmark-unique",
+      "severity": "moderate",
+      "element": ".pt-\\[var\\(--header-offset\\)\\]",
+      "description": "Landmarks should have a unique role or role/label/title (i.e. accessible name) combination",
+      "wcagLevel": ""
+    },
+    {
+      "type": "scrollable-region-focusable",
+      "severity": "serious",
+      "element": ".snap-x",
+      "description": "Ensure elements that have scrollable content are accessible by keyboard",
+      "wcagLevel": "wcag2a, wcag211"
+    }
+  ],
+  "responsive": [
+    {
+      "device": "Desktop 1920x1080",
+      "width": 1920,
+      "height": 1080,
+      "issues": [
+        "31 text elements smaller than 14px"
+      ]
+    }
+  ],
+  "recommendations": [
+    "🔴 HIGH PRIORITY: Found 2 critical issues that need immediate attention",
+    "   • Visual Design - Image Alt Text: 9 out of 66 images missing alt text",
+    "   • Accessibility - Overall A11y Issues: 8 total issues (4 critical/serious)",
+    "♿ Add descriptive alt text to all images for better accessibility",
+    "📱 Fix responsive design issues on Desktop 1920x1080",
+    "♿ Address 4 critical accessibility issues for WCAG compliance",
+    "📊 Consider implementing user analytics to track real user behavior",
+    "🔍 Conduct user testing with real users to validate these findings",
+    "✅ Create a prioritized action plan based on severity and business impact"
+  ]
+}

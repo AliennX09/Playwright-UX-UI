@@ -1,0 +1,35 @@
+{
+  "name": "ux-ui-automation-tester",
+  "version": "1.0.0",
+  "description": "Automated UX/UI testing tool for jigsawaiteam.com using Playwright and TypeScript",
+  "main": "ux-ui-tester.ts",
+  "scripts": {
+    "test": "ts-node src/testers/ux-ui-tester.ts",
+    "quick": "ts-node tests/quick-test.ts",
+    "export": "ts-node scripts/export-report.ts",
+    "build": "tsc",
+    "dev": "ts-node src/testers/ux-ui-tester.ts"
+  },
+  "keywords": [
+    "ux",
+    "ui",
+    "testing",
+    "automation",
+    "playwright",
+    "accessibility",
+    "performance"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "docx": "^9.5.1",
+    "playwright": "^1.40.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.3.3"
+  }
+}

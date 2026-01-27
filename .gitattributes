@@ -1,0 +1,12 @@
+# Auto detect text files and normalize line endings to LF
+* text=auto
+
+# TypeScript and JavaScript
+*.ts text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+
+# Windows files
+*.cmd text eol=crlf
+*.bat text eol=crlf
