@@ -299,9 +299,32 @@ class UXUITester {
       const withoutAlt = imgs.filter(img => !img.alt || img.alt.trim() === '');
       return {
         total: imgs.length,
-        withoutAlt: withoutAlt.length
+        withoutAlt: withoutAlt.length,
+        missingAltSelectors: withoutAlt.slice(0, 3).map((img, i) => {
+          return img.id ? `#${img.id}` : img.className ? `.${img.className.split(' ')[0]}` : `img:nth-of-type(${i})`;
+        })
       };
     });
+
+    // Capture screenshots of images missing alt text
+    if (images.missingAltSelectors.length > 0) {
+      for (const selector of images.missingAltSelectors) {
+        try {
+          await this.screenshotAnalyzer.recordProblemArea(
+            this.page,
+            'Visual Design',
+            'Image Alt Text',
+            selector,
+            'Image missing alt text - impacts accessibility',
+            'high',
+            'Add descriptive alt text to all images for better accessibility',
+            true
+          );
+        } catch (e) {
+          // Continue if screenshot fails
+        }
+      }
+    }
 
     const altScore = images.withoutAlt === 0 ? 10 : Math.max(0, 10 - (images.withoutAlt * 2));
     this.addResult(
@@ -560,6 +583,24 @@ class UXUITester {
       recommendations.push('Increase contrast ratio between text and background colors');
       recommendations.push('Use tools like WebAIM Color Contrast Checker to validate WCAG AA compliance (4.5:1)');
       recommendations.push('Consider using darker text on light backgrounds or lighter text on dark backgrounds');
+      
+      // Capture screenshots of low contrast elements
+      for (const issue of contrastIssues.slice(0, 2)) {
+        try {
+          await this.screenshotAnalyzer.recordProblemArea(
+            this.page,
+            'Visual Design',
+            'Color Contrast',
+            issue.selector,
+            `Text has low contrast ratio (${issue.contrast}:1, requires 4.5:1)`,
+            'high',
+            'Increase contrast ratio to meet WCAG AA standards (4.5:1)',
+            true
+          );
+        } catch (e) {
+          // Continue if screenshot fails
+        }
+      }
     }
 
     const score = contrastIssues.length === 0 ? 10 : Math.max(0, 10 - (contrastIssues.length * 0.5));
@@ -593,12 +634,17 @@ class UXUITester {
         return ctaKeywords.some(kw => text.includes(kw));
       });
 
+      const smallCTAs = ctas.filter(btn => {
+        const rect = btn.getBoundingClientRect();
+        return rect.width < 80 || rect.height < 40;
+      });
+
       const analysis = {
         totalCTAs: ctas.length,
-        smallCTAs: ctas.filter(btn => {
-          const rect = btn.getBoundingClientRect();
-          return rect.width < 80 || rect.height < 40;
-        }).length,
+        smallCTAs: smallCTAs.length,
+        smallCTASelectors: smallCTAs.slice(0, 1).map((btn, i) => {
+          return btn.id ? `#${btn.id}` : btn.className ? `.${btn.className.split(' ')[0]}` : `button:nth-of-type(${i})`;
+        }),
         notVisible: ctas.filter(btn => {
           const rect = btn.getBoundingClientRect();
           return rect.top < 0 || rect.top > window.innerHeight;
@@ -608,6 +654,26 @@ class UXUITester {
 
       return analysis;
     });
+
+    // Capture screenshot of small CTA buttons
+    if (buttonAnalysis.smallCTASelectors.length > 0) {
+      for (const selector of buttonAnalysis.smallCTASelectors) {
+        try {
+          await this.screenshotAnalyzer.recordProblemArea(
+            this.page,
+            'Interactive Elements',
+            'CTA Buttons Size',
+            selector,
+            'CTA button is too small (< 80x40px)',
+            'high',
+            'Increase button size to at least 80x40px for better usability',
+            true
+          );
+        } catch (e) {
+          // Continue if screenshot fails
+        }
+      }
+    }
 
     const visibility = buttonAnalysis.totalCTAs > buttonAnalysis.notVisible ? 'pass' : 'warning';
     
