@@ -7,6 +7,8 @@ yarn.lock
 dist/
 *.js
 *.d.ts
+# Allow project-local ambient type declarations
+!types/*.d.ts
 
 # Environment
 .env
