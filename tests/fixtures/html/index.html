@@ -6,9 +6,15 @@
 </head>
 <body>
   <!-- Hero image should be detected and preloaded -->
-  <img src="hero.jpg" data-hero="true">
+  <img src="hero.jpg" data-hero="true" alt="Hero image" loading="eager">
 
   <!-- Regular image should be set to lazy loading -->
-  <img src="pic.png">
+  <img src="pic.png" alt="Decorative demo image" loading="lazy">
+
+  <!-- Example icon-only button (needs accessible name) -->
+  <button class="hover:bg-gray-100 rounded" aria-label="Open menu">
+    <!-- icon svg placeholder -->
+    <svg width="16" height="16" aria-hidden="true"><rect width="16" height="16" fill="#000" /></svg>
+  </button>
 </body>
 </html>
