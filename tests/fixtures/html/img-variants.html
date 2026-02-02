@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Image Variants Fixture</title>
+</head>
+<body>
+  <!-- picture element -->
+  <picture>
+    <source srcset="small.webp" type="image/webp">
+    <img src="fallback.jpg" alt="fallback">
+  </picture>
+
+  <!-- srcset attribute present already -->
+  <img src="already-srcset.jpg" srcset="already-srcset.jpg 1x, already-srcset@2x.jpg 2x">
+
+  <!-- svg should be ignored for srcset heuristics -->
+  <img src="logo.svg">
+</body>
+</html>

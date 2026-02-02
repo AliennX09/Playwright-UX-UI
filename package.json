@@ -4,7 +4,11 @@
   "description": "Automated UX/UI testing tool for jigsawaiteam.com using Playwright and TypeScript",
   "main": "ux-ui-tester.ts",
   "scripts": {
-    "test": "ts-node src/testers/ux-ui-tester.ts",
+    "test": "npm run test:unit",
+    "test:unit": "jest --config jest.config.ts --runInBand --coverage",
+    "test:ci": "npm run build && jest --config jest.config.ts --runInBand --coverage",
+    "test:legacy-quick": "ts-node tests/quick-test.ts",
+    "test:optimize-html-images": "ts-node tests/optimize-html-images.test.ts",
     "quick": "ts-node tests/quick-test.ts",
     "export": "ts-node scripts/export-report.ts",
     "build": "tsc",
@@ -22,12 +26,17 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "axe-core": "^4.7.2",
     "docx": "^9.5.1",
     "playwright": "^1.40.0",
+    "sharp": "^0.32.6",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.10.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.3.3"

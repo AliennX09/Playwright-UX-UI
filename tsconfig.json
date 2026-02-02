@@ -11,8 +11,8 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",
-    "types": ["node"]
+    "types": ["node", "jest"]
   },
-  "include": ["*.ts", "src/testers/ux-ui-tester.ts", "src/config/config.example.ts", "tests/quick-test.ts"],
+  "include": ["*.ts", "src/testers/ux-ui-tester.ts", "src/config/config.example.ts", "tests", "tests/**/*"],
   "exclude": ["node_modules", "dist"]
 }

@@ -19,12 +19,23 @@ interface TestResult {
   recommendations?: string[];
 }
 
+interface LargestContentfulPaintEntry {
+  startTime: number;
+  renderTime: number;
+  loadTime: number;
+  size: number | null;
+  url: string | null;
+  element: string | null;
+  toString?: string | null;
+}
+
 interface PerformanceMetrics {
   loadTime: number;
   domContentLoaded: number;
   firstPaint: number;
   firstContentfulPaint: number;
   largestContentfulPaint: number;
+  largestContentfulPaintEntry?: LargestContentfulPaintEntry | null;
   totalSize: number;
   requestCount: number;
 }
@@ -81,7 +92,7 @@ const config = {
 // UX/UI Testing Class
 // ========================================
 
-class UXUITester {
+export class UXUITester {
   private browser!: Browser;
   private context!: BrowserContext;
   private page!: Page;
@@ -201,18 +212,36 @@ class UXUITester {
       };
     });
 
-    // Get LCP
-    const lcp = await this.page.evaluate(() => {
-      return new Promise<number>((resolve) => {
-        new PerformanceObserver((list) => {
-          const entries = list.getEntries();
-          const lastEntry = entries[entries.length - 1] as any;
-          resolve(lastEntry.renderTime || lastEntry.loadTime);
-        }).observe({ entryTypes: ['largest-contentful-paint'] });
+    // Get LCP (capture entry details using buffered observer)
+    const lcpResult = await this.page.evaluate(() => {
+      return new Promise<any>((resolve) => {
+        try {
+          new PerformanceObserver((list) => {
+            const entries = list.getEntries();
+            const lastEntry = entries[entries.length - 1] as any || null;
+            if (!lastEntry) return;
+            const e: any = lastEntry;
+            const entry = {
+              startTime: e.startTime || 0,
+              renderTime: e.renderTime || e.loadTime || 0,
+              loadTime: e.loadTime || 0,
+              size: e.size || null,
+              url: e.url || null,
+              element: e.element ? (e.element.outerHTML || e.element.tagName) : null,
+              toString: e.toString ? e.toString() : null,
+            };
+            resolve({ value: entry.renderTime, entry });
+          }).observe({ type: 'largest-contentful-paint', buffered: true });
+        } catch (err) {
+          resolve({ value: 0, entry: null });
+        }
 
-        setTimeout(() => resolve(0), 5000);
+        setTimeout(() => resolve({ value: 0, entry: null }), 5000);
       });
     });
+
+    const lcp = lcpResult?.value || 0;
+    const lcpEntry = lcpResult?.entry || null;
 
     this.performanceMetrics = {
       loadTime,
@@ -220,6 +249,7 @@ class UXUITester {
       firstPaint: metrics.firstPaint,
       firstContentfulPaint: metrics.firstContentfulPaint,
       largestContentfulPaint: lcp,
+      largestContentfulPaintEntry: lcpEntry,
       totalSize: resources.totalSize,
       requestCount: resources.count,
     };
@@ -998,77 +1028,78 @@ class UXUITester {
   // ========================================
 
   async testResponsive(): Promise<void> {
-    console.log('📱 Testing responsive design (Desktop Only)...');
+    console.log('📱 Testing responsive design across configured devices...');
 
-    // Only test desktop for now due to browser stability issues
-    const device = config.devices[0]; // Desktop 1920x1080
-    
-    try {
-      const issues: string[] = [];
-
-      // Check for horizontal scroll
-      const hasHorizontalScroll = await this.page.evaluate(() => {
-        return document.documentElement.scrollWidth > document.documentElement.clientWidth;
-      });
-
-      if (hasHorizontalScroll) {
-        issues.push('Horizontal scrollbar detected');
-      }
-
-      // Check text readability
-      const textTooSmall = await this.page.evaluate(() => {
-        const textElements = Array.from(document.querySelectorAll('p, li, span, div'));
-        const tooSmall = textElements.filter(el => {
-          const style = window.getComputedStyle(el);
-          const fontSize = parseFloat(style.fontSize);
-          const text = el.textContent?.trim() || '';
-          return text.length > 10 && fontSize < 14;
+    for (const device of config.devices) {
+      try {
+        const isMobile = /mobile|iphone|android|s21/i.test(device.name) || device.width <= 420;
+        const ctx = await this.browser.newContext({
+          viewport: { width: device.width, height: device.height },
+          isMobile,
         });
-        return tooSmall.length;
-      });
+        const p = await ctx.newPage();
+        await p.goto(config.url, { waitUntil: 'networkidle', timeout: config.timeouts.navigation });
 
-      if (textTooSmall > 5) {
-        issues.push(`${textTooSmall} text elements smaller than 14px`);
+        const issues: string[] = [];
+
+        // Horizontal scroll
+        const hasHorizontalScroll = await p.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+        if (hasHorizontalScroll) issues.push('Horizontal scrollbar detected');
+
+        // Text readability
+        const textTooSmall = await p.evaluate(() => {
+          const textElements = Array.from(document.querySelectorAll('p, li, span, div')) as HTMLElement[];
+          const tooSmall = textElements.filter(el => {
+            const style = window.getComputedStyle(el);
+            const fontSize = parseFloat(style.fontSize);
+            const text = el.textContent?.trim() || '';
+            return text.length > 10 && fontSize < 14;
+          });
+          return tooSmall.length;
+        });
+        if (textTooSmall > 5) issues.push(`${textTooSmall} text elements smaller than 14px`);
+
+        // Touch target check (for mobile/tablet)
+        if (isMobile) {
+          const smallTargets = await p.evaluate(() => {
+            const els = Array.from(document.querySelectorAll('a, button, input, [role="button"]')) as HTMLElement[];
+            return els.filter(el => {
+              const rect = el.getBoundingClientRect();
+              return rect.width < 44 || rect.height < 44;
+            }).length;
+          });
+          if (smallTargets > 0) issues.push(`${smallTargets} touch targets smaller than 44x44`);
+        }
+
+        // Screenshot for visual inspection
+        const screenshotPath = path.join(config.screenshotsDir, `${device.name.replace(/\s+/g, '_')}-${Date.now()}.png`);
+        await p.screenshot({ path: screenshotPath, fullPage: true });
+
+        this.responsiveResults.push({ device: device.name, width: device.width, height: device.height, issues, screenshot: screenshotPath });
+
+        const deviceScore = issues.length === 0 ? 10 : issues.length === 1 ? 7 : 5;
+        this.addResult(
+          'Responsive Design',
+          device.name,
+          issues.length === 0 ? 'pass' : 'warning',
+          deviceScore,
+          issues.length === 0 ? 'No issues detected' : issues.join(', '),
+          issues.length > 1 ? 'medium' : 'low'
+        );
+
+        await p.close();
+        await ctx.close();
+      } catch (err) {
+        console.log(`  ℹ️  Responsive testing for ${device.name} encountered an issue: ${err}`);
+        this.addResult(
+          'Responsive Design',
+          device.name,
+          'warning',
+          5,
+          'Could not fully test responsive design for this device',
+          'low'
+        );
       }
-
-      this.responsiveResults.push({
-        device: device.name,
-        width: device.width,
-        height: device.height,
-        issues,
-      });
-
-      const deviceScore = issues.length === 0 ? 10 : issues.length === 1 ? 7 : 5;
-      this.addResult(
-        'Responsive Design',
-        `${device.name}`,
-        issues.length === 0 ? 'pass' : 'warning',
-        deviceScore,
-        issues.length === 0 ? 'No issues detected' : issues.join(', '),
-        issues.length > 1 ? 'medium' : 'low'
-      );
-
-      // Note: Mobile responsive testing disabled due to browser stability issues
-      // Users should test responsive design manually on actual mobile devices
-      this.addResult(
-        'Responsive Design',
-        'Mobile Testing Note',
-        'warning',
-        7,
-        'Mobile responsive testing disabled (manual testing recommended)',
-        'low'
-      );
-
-    } catch (error) {
-      console.log('  ℹ️  Responsive testing encountered an issue');
-      this.addResult(
-        'Responsive Design',
-        'Desktop Testing',
-        'warning',
-        5,
-        'Could not fully test responsive design',
-        'low'
-      );
     }
   }
 
@@ -1080,31 +1111,49 @@ class UXUITester {
     console.log('♿ Testing accessibility...');
 
     try {
-      // Try to inject axe-core for accessibility testing
+      // Load axe-core, prefer CDN then fallback to local package
+      let axeLoaded = false;
       try {
-        await this.page.addScriptTag({
-          url: 'https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.7.2/axe.min.js'
+        await this.page.addScriptTag({ url: 'https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.7.2/axe.min.js' });
+        axeLoaded = await this.page.evaluate(() => typeof (window as any).axe !== 'undefined');
+      } catch (cdnErr) {
+        // ignore
+      }
+
+      if (!axeLoaded) {
+        try {
+          // @ts-ignore - dynamic require
+          const axePath = require.resolve('axe-core/axe.min.js');
+          await this.page.addScriptTag({ path: axePath });
+          axeLoaded = await this.page.evaluate(() => typeof (window as any).axe !== 'undefined');
+          if (axeLoaded) console.log('  ℹ️  Axe-core loaded from local package');
+        } catch (localErr) {
+          console.log('  ℹ️  Axe-core could not be loaded (CDN & local fallback failed)');
+        }
+      } else {
+        console.log('  ℹ️  Axe-core loaded from CDN');
+      }
+
+      // Run axe if available and report structured issues and recommendations
+      if (axeLoaded) {
+        const axeResults = await this.page.evaluate(async () => {
+          // @ts-ignore
+          return (window as any).axe.run();
         });
 
-        // Run axe accessibility tests
-        const violations = await this.page.evaluate(() => {
-          return new Promise<any>((resolve) => {
-            // @ts-ignore - axe-core is loaded dynamically
-            if (typeof window !== 'undefined' && typeof (window as any).axe !== 'undefined') {
-              // @ts-ignore
-              (window as any).axe.run().then((results: any) => {
-                resolve(results.violations);
-              }).catch(() => resolve([]));
-            } else {
-              resolve([]);
-            }
-          });
-        });
+        const violations = axeResults.violations || [];
+
+        const ruleRecommendations: Record<string, string> = {
+          'button-name': 'Ensure buttons with only icons have accessible names (aria-label or visually hidden text)',
+          'aria-input-field-name': 'Provide accessible names for form inputs (label element or aria-label)',
+          'color-contrast': 'Increase color contrast to meet WCAG AA (4.5:1 for normal text)',
+          'scrollable-region-focusable': 'Ensure scrollable regions are keyboard focusable and have a visible focus indicator',
+        };
 
         violations.forEach((violation: any) => {
           const severity = violation.impact === 'critical' || violation.impact === 'serious' ? 'high' : 
-                          violation.impact === 'moderate' ? 'medium' : 'low';
-          
+                          violation.impact === 'moderate' ? 'medium' : 'minor';
+
           this.accessibilityIssues.push({
             type: violation.id,
             severity: violation.impact,
@@ -1112,34 +1161,88 @@ class UXUITester {
             description: violation.description,
             wcagLevel: violation.tags.filter((t: string) => t.startsWith('wcag')).join(', '),
           });
+
+          // Add a specific failing result for important rules
+          if (ruleRecommendations[violation.id]) {
+            this.addResult(
+              'Accessibility',
+              violation.id,
+              'fail',
+              0,
+              `${violation.help}: ${violation.nodes[0]?.target.join(', ')}`,
+              'high',
+              undefined,
+              [ruleRecommendations[violation.id]]
+            );
+          }
         });
-      } catch (error) {
-        console.log('  ℹ️  Axe-core test skipped (CDN not available)');
+      } else {
+        this.addResult(
+          'Accessibility',
+          'axe-core',
+          'warning',
+          5,
+          'axe-core could not be loaded; accessibility automated checks were limited',
+          'low'
+        );
       }
 
-      // Keyboard navigation test
+      // Keyboard navigation test (simulate Tab and ensure focus moves)
       try {
-        const focusableElements = await this.page.evaluate(() => {
-          const selectors = 'a, button, input, textarea, select, [tabindex]:not([tabindex="-1"])';
-          const elements = Array.from(document.querySelectorAll(selectors));
-          return elements.length;
-        });
+        const focusedSelectors = new Set<string>();
+        for (let i = 0; i < 30; i++) {
+          await this.page.keyboard.press('Tab');
+          // capture a simple descriptor of the activeElement
+          const desc = await this.page.evaluate(() => {
+            const el = document.activeElement as HTMLElement | null;
+            if (!el) return 'none';
+            const id = el.id ? `#${el.id}` : '';
+            const cls = (el.className && typeof el.className === 'string') ? `.${(el.className as string).split(' ')[0]}` : '';
+            return `${el.tagName}${id}${cls}`;
+          });
+          focusedSelectors.add(desc || 'none');
+        }
 
         this.addResult(
           'Accessibility',
-          'Focusable Elements',
-          focusableElements > 0 ? 'pass' : 'fail',
-          focusableElements > 0 ? 10 : 0,
-          `${focusableElements} keyboard-accessible elements found`,
-          'high'
+          'Keyboard Navigation',
+          focusedSelectors.size > 1 ? 'pass' : 'fail',
+          focusedSelectors.size > 1 ? 10 : 0,
+          `${focusedSelectors.size} distinct focus targets reached via Tab`,
+          focusedSelectors.size > 1 ? 'low' : 'high'
         );
       } catch (e) {
         this.addResult(
           'Accessibility',
-          'Focusable Elements',
+          'Keyboard Navigation',
           'warning',
           5,
-          'Could not test focusable elements',
+          'Could not simulate keyboard navigation',
+          'low'
+        );
+      }
+
+      // Skip link detection
+      try {
+        const hasSkipLink = await this.page.evaluate(() => {
+          return !!document.querySelector('a.skip, a[href="#main"], a[href="#content"], a[href^="#skip"]');
+        });
+
+        this.addResult(
+          'Accessibility',
+          'Skip Link',
+          hasSkipLink ? 'pass' : 'warning',
+          hasSkipLink ? 10 : 7,
+          hasSkipLink ? 'Skip link present' : 'Consider adding a "skip to content" link for keyboard users',
+          hasSkipLink ? 'low' : 'medium'
+        );
+      } catch (e) {
+        this.addResult(
+          'Accessibility',
+          'Skip Link',
+          'warning',
+          5,
+          'Could not test for skip link',
           'low'
         );
       }
@@ -1252,6 +1355,12 @@ class UXUITester {
 
     if (this.performanceMetrics.largestContentfulPaint > 2500) {
       recommendations.push('⚡ Improve Largest Contentful Paint (LCP) by optimizing above-the-fold content');
+    }
+
+    // If we have LCP entry details, add a targeted recommendation
+    if (this.performanceMetrics.largestContentfulPaintEntry && this.performanceMetrics.largestContentfulPaintEntry.url) {
+      const lcpUrl = this.performanceMetrics.largestContentfulPaintEntry.url;
+      recommendations.push(`⚡ Consider optimizing LCP resource: ${lcpUrl} — compress/convert (AVIF/WebP), resize to display size, or preload if it is the hero image`);
     }
 
     const missingAltImages = this.results.find(r => r.test === 'Image Alt Text' && r.status === 'fail');
@@ -1621,6 +1730,7 @@ class ReportGenerator {
           <div class="metric-card">
             <div class="metric-label">Largest Contentful Paint</div>
             <div class="metric-value">${Math.round(report.performance.largestContentfulPaint)}ms</div>
+            ${report.performance.largestContentfulPaintEntry ? `<div class="metric-note">LCP element: ${report.performance.largestContentfulPaintEntry.element ? report.performance.largestContentfulPaintEntry.element.replace(/</g,'&lt;').replace(/>/g,'&gt;') : report.performance.largestContentfulPaintEntry.url || 'n/a'} (${report.performance.largestContentfulPaintEntry.size ? (report.performance.largestContentfulPaintEntry.size/1024).toFixed(1)+'KB' : 'size n/a'})</div>` : ''}
           </div>
           <div class="metric-card">
             <div class="metric-label">ขนาดหน้าเว็บ</div>
@@ -1835,4 +1945,4 @@ if (require.main === module) {
   main().catch(console.error);
 }
 
-export { UXUITester, ReportGenerator, UXReport };
+export { ReportGenerator, UXReport };
