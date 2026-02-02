@@ -1,0 +1,31 @@
+name: Create Issues for UX A11Y Todo
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: 'Dry run (true = do not create issues)'
+        required: false
+        default: 'true'
+  push:
+    branches:
+      - chore/a11y-fixes
+
+jobs:
+  create-issues:
+    runs-on: ubuntu-latest
+    env:
+      DRY_RUN: ${{ github.event.inputs['dry-run'] || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install deps
+        run: npm ci
+      - name: Create GitHub Issues from TODO
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: npx ts-node scripts/create-github-issues.ts

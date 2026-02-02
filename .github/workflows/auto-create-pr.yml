@@ -1,0 +1,28 @@
+name: Auto-create PR for a11y fixes
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - chore/a11y-fixes
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore(a11y): example fixes and TODO'
+          title: 'chore(a11y): example fixes and UX accessibility TODOs'
+          body: |
+            This PR contains small, safe accessibility fixes (sample alt attributes and aria-labels), and a generated TODO list for further accessibility issues.
+            The CI includes a11y checks (axe) and tests; please review and run visual checks before merging.
+          base: main
+          head: chore/a11y-fixes
+          draft: false
