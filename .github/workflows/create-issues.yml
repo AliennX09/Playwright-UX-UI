@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: '18'
       - name: Install deps
-        run: npm ci
+        run: npm install --no-audit --no-fund
       - name: Create GitHub Issues from TODO
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
