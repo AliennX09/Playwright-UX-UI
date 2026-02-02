@@ -42,12 +42,46 @@ async function main() {
     }
   }
 
-  // Only import Octokit when not in dry-run mode (avoids requiring the package for local dry-runs)
+  // Initialize GitHub client (prefer @octokit/rest; fallback to a small fetch-based client)
   let octokit: any = null;
   if (!dryRun) {
-    const mod = await import('@octokit/rest');
-    const Octokit = mod.Octokit;
-    octokit = new Octokit({ auth: token });
+    try {
+      const mod = await import('@octokit/rest');
+      const Octokit = (mod && (mod.Octokit || mod.default));
+      if (!Octokit) throw new Error('Octokit export not found');
+      octokit = new Octokit({ auth: token });
+    } catch (err) {
+      console.warn('[warn] Could not import @octokit/rest, falling back to fetch-based client:', err && (err as Error).message ? (err as Error).message : err);
+      if (typeof fetch === 'undefined') {
+        throw new Error('No global fetch available; either run on Node 18+ or ensure @octokit/rest is installed');
+      }
+      // Minimal fetch-based client (simple implementations of the methods we need)
+      octokit = {
+        issues: {
+          listForRepo: async ({ owner, repo: repoName, state }: any) => {
+            const qs = `state=${state}&per_page=100`;
+            const url = `https://api.github.com/repos/${owner}/${repo}/issues?${qs}`;
+            const res = await fetch(url, { headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github+json', 'User-Agent': 'create-github-issues-script' } });
+            if (!res.ok) {
+              const txt = await res.text();
+              throw new Error(`GitHub API listForRepo failed: ${res.status} ${txt}`);
+            }
+            const data = await res.json();
+            return { data };
+          },
+          create: async ({ owner, repo: repoName, title, body, labels }: any) => {
+            const url = `https://api.github.com/repos/${owner}/${repo}/issues`;
+            const res = await fetch(url, { method: 'POST', headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json', Accept: 'application/vnd.github+json', 'User-Agent': 'create-github-issues-script' }, body: JSON.stringify({ title, body, labels }) });
+            if (!res.ok) {
+              const txt = await res.text();
+              throw new Error(`GitHub API create issue failed: ${res.status} ${txt}`);
+            }
+            const data = await res.json();
+            return { data };
+          }
+        }
+      };
+    }
   } else {
     console.log('[dry-run] Skipping GitHub queries; running entirely locally.');
   }
@@ -58,17 +92,23 @@ async function main() {
       continue;
     }
 
-    // Check existing issues with same title
-    const { data: issues } = await octokit.issues.listForRepo({ owner, repo: repoName, state: 'open' });
-    const exists = issues.find((i: any) => i.title === it.title);
-    if (exists) {
-      console.log('Issue exists, skipping:', it.title);
+    try {
+      // Check existing issues with same title
+      const { data: issues } = await octokit.issues.listForRepo({ owner, repo: repoName, state: 'open' });
+      const exists = issues.find((i: any) => i.title === it.title);
+      if (exists) {
+        console.log('Issue exists, skipping:', it.title);
+        continue;
+      }
+
+      const issueBody = `Auto-imported from UX A11Y TODO\n\n${it.desc}\n\nSee: outputs/ux-report/ux-report.json`;
+      const res = await octokit.issues.create({ owner, repo: repoName, title: it.title, body: issueBody, labels: ['a11y', 'automation'] });
+      console.log('Created issue:', res.data.html_url);
+    } catch (err) {
+      console.error('Failed to create or check issue for', it.title, err && (err as Error).message ? (err as Error).message : err);
+      // continue with other items
       continue;
     }
-
-    const issueBody = `Auto-imported from UX A11Y TODO\n\n${it.desc}\n\nSee: outputs/ux-report/ux-report.json`;
-    const res = await octokit.issues.create({ owner, repo: repoName, title: it.title, body: issueBody, labels: ['a11y', 'automation'] });
-    console.log('Created issue:', res.data.html_url);
   }
 }
 
